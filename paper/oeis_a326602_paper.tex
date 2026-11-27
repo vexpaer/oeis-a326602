@@ -25,7 +25,7 @@ A Complete Proof and Lean 4 Formalization of OEIS A326602}}
 \author{Ximing Wang\\
 \texttt{vexpaer@gmail.com}}
 
-\date{November 27, 2026}
+\date{November 27, 2026 (revised November 28, 2026)}
 
 \begin{document}
 
@@ -37,11 +37,11 @@ In August 2019, Paul D.~Hanna introduced the integer sequence \href{https://oeis
 A(x) = \sum_{n=0}^{\infty} \frac{(x^{2n-1}+1)^n x^n}{(1+x^{2n+1})^{n+1}}
      = \sum_{n=0}^{\infty} \frac{(x^{2n}+x)^n}{(1+x^{2n+1})^{n+1}} \in \Z[[x]],
 \]
-stated that $A(x) = \sum_{n=0}^{\infty} a(n) x^{2n}$ is an even function, and conjectured that $a(n)$ is odd if and only if $n$ is a perfect square. We resolve this conjecture completely and simultaneously prove the evenness of $A(x)$ and Hanna's alternative series representations directly from the primary rational-series definition. Expanding the $n$-th summand yields an exact signed multinomial triple-sum formula
+stated that $A(x) = \sum_{n=0}^{\infty} a(n) x^{2n}$ is an even function, and conjectured that $a(n)$ is odd if and only if $n$ is a perfect square. We present a complete Lean 4 formalization of this conjecture and simultaneously prove the evenness of $A(x)$ and Hanna's alternative series representations directly from the primary rational-series definition. Expanding the $n$-th summand yields an exact signed multinomial triple-sum formula
 \[
 \coeff{N} A(x) = \sum_{\substack{a,b,c \ge 0 \\ a + c + 2(b+a)(b+c) = N}} (-1)^a \frac{(a+b+c)!}{a!\,b!\,c!}.
 \]
-The coordinate-swapping involution $\tau(a,b,c) = (c,b,a)$ preserves the exponent $a + c + 2(b+a)(b+c)$ and the multinomial coefficient while multiplying the weight by $(-1)^{a+c}$. For odd $N$, $\tau$ is a fixed-point-free sign-reversing involution, proving $\coeff{2n+1} A(x) = 0$ for all $n \ge 0$. For even $N = 2n$, $\tau$ pairs all off-diagonal triples ($a \ne c$) with identical weights, while every diagonal triple $(a,b,a)$ with $a \ge 1$ carries the even central binomial factor $\binom{2a}{a} = 2\binom{2a-1}{a-1}$. Modulo $2$, only triples $(0,b,0)$ with $2b^2 = 2n$ survive, proving that $a(n)$ is odd if and only if $n = b^2$. The entire proof—starting from the formal power series definition in $\Z[[x]]$—is formalized and machine-checked in Lean 4 (\texttt{v4.33.1}) with zero \texttt{sorry} placeholders and only the standard Lean axioms \texttt{[propext, Classical.choice, Quot.sound]}.
+The coordinate-swapping involution $\tau(a,b,c) = (c,b,a)$ preserves the exponent $a + c + 2(b+a)(b+c)$ and the multinomial coefficient while multiplying the weight by $(-1)^{a+c}$. For odd $N$, $\tau$ is a fixed-point-free sign-reversing involution, proving $\coeff{2n+1} A(x) = 0$ for all $n \ge 0$. For even $N = 2n$, $\tau$ pairs all off-diagonal triples ($a \ne c$) with identical weights, while every diagonal triple $(a,b,a)$ with $a \ge 1$ carries the even central binomial factor $\binom{2a}{a} = 2\binom{2a-1}{a-1}$. Modulo $2$, only triples $(0,b,0)$ with $2b^2 = 2n$ survive, proving that $a(n)$ is odd if and only if $n = b^2$. The mathematical argument was previously published in a November 1, 2026 repository issue by the trureturing project; the present work contributes a separate formalization. The proof—starting from the formal power series definition in $\Z[[x]]$—is reported as formalized and machine-checked in Lean 4 (\texttt{v4.33.1}) with zero \texttt{sorry} placeholders and only the standard Lean axioms \texttt{[propext, Classical.choice, Quot.sound]}.
 \end{abstract}
 
 \noindent\textbf{MSC 2020:} 05A15, 05A19, 11B65, 13F25, 68V20.\\
@@ -64,14 +64,16 @@ A(x) &= \sum_{n=0}^{\infty} \frac{(x^{2n-1}-1)^n x^n}{(1-x^{2n+1})^{n+1}}, \labe
 A(x) &= \sum_{n=0}^{\infty} x^n \sum_{k=0}^{n} \binom{n}{k} (x^{2n-1} - x^{2k})^{n-k}, \label{eq:hanna3}\\
 A(x) &= \sum_{n=0}^{\infty} x^n \sum_{k=0}^{n} (-1)^k \binom{n}{k} (x^{2n-1} + x^{2k})^{n-k}, \label{eq:hanna4}
 \end{align}
-and posed the following open conjecture:
+and posed the following conjecture:
 \begin{quote}
 \emph{Conjecture (Paul D.~Hanna, Aug 8, 2019): $a(n)$ is odd if and only if $n$ is a square.}
 \end{quote}
 
 The series~\eqref{eq:primary} belongs to a family of Hanna rational-function generating series exhibiting sparse odd-coefficient support, such as \href{https://oeis.org/A323557}{OEIS A323557} (where odd terms occur at pronic indices $n(n+1)$). In contrast to~\href{https://oeis.org/A323557}{A323557}, the generating function~\eqref{eq:primary} of \href{https://oeis.org/A326602}{A326602} is itself an \emph{even} power series, and the odd coefficients of $a(n) = \coeff{2n} A(x)$ occur precisely at the perfect squares $n = b^2$.
 
-In this paper we give a completely elementary, self-contained proof of both the evenness of $A(x)$ and Hanna's parity conjecture directly from the primary definition~\eqref{eq:primary}, without assuming any of the auxiliary identities~\eqref{eq:hanna2}--\eqref{eq:hanna4} in advance (indeed, all three follow as immediate corollaries of our main expansion). Moreover, the entire argument has been formalized and machine-checked in Lean 4 (\texttt{v4.33.1}) as a standalone module compatible with the \href{https://github.com/google-deepmind/formal-conjectures}{Google DeepMind Formal Conjectures} framework.
+A prior mathematical proof was publicly recorded on November 1, 2026, in trureturing Issue \#25051 \cite{Trureturing2026}. It contains the same multinomial reindexing, coordinate-swap involution, central-binomial parity argument, and proof of evenness. The present manuscript was developed separately and the earlier record was located after its initial preparation on November 27, 2026. Accordingly, we claim no priority for the mathematical proof and make no claim of being the first Lean formalization. Our contribution is the accompanying formal proof from the defining power series.
+
+In this paper we give a completely elementary, self-contained proof of both the evenness of $A(x)$ and Hanna's parity conjecture directly from the primary definition~\eqref{eq:primary}, without assuming any of the auxiliary identities~\eqref{eq:hanna2}--\eqref{eq:hanna4} in advance (indeed, all three follow as immediate corollaries of our main expansion). Moreover, the central coefficient identity, evenness and parity results have been formalized and reported as machine-checked in Lean 4 (\texttt{v4.33.1}) as a standalone module compatible with the \href{https://github.com/google-deepmind/formal-conjectures}{Google DeepMind Formal Conjectures} framework.
 
 \section{Formal Power Series Setup and Triple-Sum Expansion}
 
@@ -320,7 +322,7 @@ $n$ & $a(n)$ & $a(n) \bmod 2$ & $S_{2n}^{0}$ & $n$ & $a(n)$ & $a(n) \bmod 2$ & $
 
 \section{Lean 4 Formalization}
 
-All definitions and theorems in Sections~2--3 have been formalized in Lean 4 (\texttt{v4.33.1}) with Mathlib in the standalone file \texttt{FormalConjectures/OEIS/326602.lean} (781 lines), structured in the conventions of the \href{https://github.com/google-deepmind/formal-conjectures}{Google DeepMind Formal Conjectures} repository. Rather than starting from an auxiliary binomial sum, the formalization defines \texttt{A : PowerSeries Int} directly from the rational-series summands \texttt{termSeries n} and proves every link in the chain from first principles.
+The principal results in Sections~2--3 have been formalized in Lean 4 (\texttt{v4.33.1}) with Mathlib in the standalone file \texttt{FormalConjectures/OEIS/326602.lean} (781 lines), structured in the conventions of the \href{https://github.com/google-deepmind/formal-conjectures}{Google DeepMind Formal Conjectures} repository. Rather than starting from an auxiliary binomial sum, the formalization defines \texttt{A : PowerSeries Int} directly from the rational-series summands \texttt{termSeries n} and proves every link in the chain from first principles.
 
 \begin{table}[ht]
 \centering
@@ -340,13 +342,18 @@ Lean Declaration & Paper Result & Status \\
 \end{tabular}
 \end{table}
 
-Compiling \texttt{lake build FormalConjectures.OEIS.«326602»} completes with \textbf{0 errors}, \textbf{0 warnings}, and \textbf{0 \texttt{sorry}s}. Running \texttt{\#print axioms} on all nine theorems in Table~\ref{tab:lean} confirms that every proof depends strictly on the three standard Lean axioms
+The original author-supplied verification report states that compiling \texttt{lake build FormalConjectures.OEIS.«326602»} completed with \textbf{0 errors}, \textbf{0 warnings}, and \textbf{0 \texttt{sorry}s}. The report further states that running \texttt{\#print axioms} on all nine theorems in Table~\ref{tab:lean} confirmed that every proof depends strictly on the three standard Lean axioms
 \[
 \texttt{[propext, Classical.choice, Quot.sound]},
 \]
 with no \texttt{sorryAx} and no \texttt{Lean.ofReduceBool} (\texttt{native\_decide}).
 
+\section*{AI use and verification status}
+Generative AI was used substantially in developing the mathematical argument, Lean code, and manuscript, and in the subsequent literature search and editorial revision. The author is responsible for the accuracy and attribution of the work. The repository includes the original Lean source and reproducibility instructions; the reported build and axiom audit are distinct from an independent reproduction or peer review.
+
 \begin{thebibliography}{9}
+\bibitem{Trureturing2026}
+The Omega Institute, \emph{Open problem (preregistration): prove Paul D. Hanna's OEIS A326602 FORMULA square-parity conjecture}, trureturing, GitHub Issue \#25051, November 1, 2026. \url{https://github.com/the-omega-institute/trureturing/issues/25051}.
 \bibitem{Hanna2019}
 P.~D. Hanna, \emph{Sequence A326602: G.f.: $\sum_{n\ge 0} (x^{2n-1}+1)^n x^n / (1+x^{2n+1})^{n+1}$, an even function}, The On-Line Encyclopedia of Integer Sequences, Aug.~8, 2019. \url{https://oeis.org/A326602}.
 
