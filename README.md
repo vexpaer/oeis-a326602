@@ -1,8 +1,8 @@
-# OEIS A326602 — Proof and Lean 4 formalization
+# OEIS A326602 — Independent Lean 4 formalization
 
 **Author:** Ximing Wang · 27 November 2026
 
-[Manuscript PDF](paper/oeis_a326602_paper.pdf) · [LaTeX source](paper/oeis_a326602_paper.tex) · [Original source bundle](original/oeis-a326602-lean.zip)
+[Original manuscript PDF (Nov 27; superseded by revised source)](paper/oeis_a326602_paper.pdf) · [Revised LaTeX source (Nov 28)](paper/oeis_a326602_paper.tex) · [Original source bundle](original/oeis-a326602-lean.zip)
 
 ## Result
 
@@ -23,6 +23,10 @@ bash scripts/verify.sh
 ```
 
 The script checks out Formal Conjectures at `f606af160664c5a10952e9a957b100a1cd45bbeb` (Lean 4.33.1), builds the module and prints the axioms of the five central theorems and four initial-value checks. No changes are pushed to upstream.
+
+## Prior proof and contribution
+
+The mathematical proof was previously published on November 1, 2026 in [trureturing Issue #25051](https://github.com/the-omega-institute/trureturing/issues/25051). That proof already contains the multinomial expansion, symmetry involution, central-binomial parity argument and evenness. The present project was developed separately and credits that prior proof; its contribution is a Lean formalization of the defining power series and the resulting coefficient and parity identities. No mathematical or formalization priority is claimed. Generative AI was used substantially in proof development, Lean implementation, manuscript drafting and the subsequent literature review.
 
 ## Related work and citation
 
