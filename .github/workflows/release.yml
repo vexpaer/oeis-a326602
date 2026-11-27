@@ -1,4 +1,4 @@
-name: Prepare archival release
+name: Publish corrected A326602 release
 on:
   push:
     branches: [main]
@@ -7,17 +7,51 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: a326602-corrected-release
+  cancel-in-progress: false
 jobs:
-  prepare:
+  publish:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare v1.0.0 draft
+        with:
+          ref: main
+      - name: Check release does not exist
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            echo "Release already exists; leaving it unchanged."
+          if gh release view v1.0.1 >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           else
-            gh release create v1.0.0 --draft --target "$GITHUB_SHA" --title "v1.0.0 — OEIS A326602 parity conjecture" --notes-file RELEASE_NOTES.md paper/oeis_a326602_paper.pdf paper/oeis_a326602_paper.tex original/oeis-a326602-lean.zip
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Install LaTeX
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-extra
+      - name: Compile revised manuscript
+        if: steps.check.outputs.exists == 'false'
+        working-directory: paper
+        run: |
+          pdflatex -interaction=nonstopmode -halt-on-error oeis_a326602_paper.tex
+          pdflatex -interaction=nonstopmode -halt-on-error oeis_a326602_paper.tex
+      - name: Commit rebuilt PDF
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          sed -i 's/Original manuscript PDF (Nov 27; superseded by revised source)/Revised manuscript PDF (Nov 28)/' README.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add paper/oeis_a326602_paper.pdf README.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Rebuild revised A326602 manuscript PDF"
+            git push origin HEAD:main
+          fi
+      - name: Publish v1.0.1
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.0.1 --target "$(git rev-parse HEAD)" --title "v1.0.1 — A326602 independent Lean 4 formalization" --notes-file RELEASE_NOTES.md paper/oeis_a326602_paper.pdf paper/oeis_a326602_paper.tex original/oeis-a326602-lean.zip
