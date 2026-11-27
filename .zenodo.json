@@ -7,7 +7,7 @@
       "name": "Wang, Ximing"
     }
   ],
-  "description": "<p>A proof of Paul D. Hanna's 2019 parity conjecture for OEIS A326602, directly from its formal power series definition. A signed multinomial triple-sum expansion and coordinate-swapping involution establish evenness and show that the coefficient of x^(2n) is odd exactly when n is a square. Includes the manuscript, original Lean 4.33.1 proof bundle and reproduction instructions. The author reports zero sorry and standard axioms only; independent review and verification are pending. Developed with AI assistance.</p>",
+  "description": "<p>A separately developed Lean 4 formalization of the evenness and square-index parity theorem for OEIS A326602, from its defining formal power series. The mathematical proof was previously published in trureturing Issue #25051 (November 1, 2026) and is credited here. No claim of mathematical or formalization priority is made. Generative AI contributed substantially to the proof, Lean code and manuscript. The original author-supplied build report is distinguished from independent verification.</p>",
   "license": "cc-by-4.0",
   "access_right": "open",
   "language": "eng",
@@ -33,6 +33,11 @@
     },
     {
       "identifier": "https://github.com/google-deepmind/alphaproof-nexus-results/blob/main/APNOutputs/OEIS/oeis_323557_conjecture_0.lean",
+      "relation": "references",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://github.com/the-omega-institute/trureturing/issues/25051",
       "relation": "references",
       "scheme": "url"
     }
