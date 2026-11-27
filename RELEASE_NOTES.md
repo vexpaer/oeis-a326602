@@ -1,7 +1,7 @@
-# v1.0.0 — OEIS A326602 parity conjecture
+# v1.0.1 — A326602: independent Lean 4 formalization
 
-The manuscript proves the evenness and square-index parity property of Hanna's formal power series from its primary definition. Includes original Lean 4.33.1 source, manuscript PDF and TeX, and reproducible verification instructions.
-
-The supplied proof reports a clean build and only standard Lean axioms; consult the independent CI result before asserting reproduction. AI assistance is disclosed. Independent mathematical review and priority assessment remain pending. Related proof for a different sequence, A323557, is cited in README.
-
-Enable this repository in Zenodo's GitHub integration before publishing the draft release, so that publishing can trigger archiving.
+- Credits the earlier mathematical proof in [trureturing Issue #25051](https://github.com/the-omega-institute/trureturing/issues/25051), dated November 1, 2026.
+- Clarifies the contribution as a separately developed Lean formalization; claims no priority for the proof or formalization.
+- Discloses substantial generative-AI assistance in the mathematical argument, Lean code and manuscript.
+- Preserves the mathematical derivation and original Lean proof bundle. The original author-supplied build report is not an independent audit.
+- Includes revised LaTeX source and a freshly compiled PDF.
