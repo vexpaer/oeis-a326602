@@ -1,0 +1,25 @@
+name: Verify Lean proof
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Reproduce and audit the supplied proof
+        run: bash scripts/verify.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lean-axiom-report
+          path: lean-axioms.txt

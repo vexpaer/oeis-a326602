@@ -1,0 +1,40 @@
+{
+  "title": "Parity and Evenness of a Hanna Power Series: A Complete Proof and Lean 4 Formalization of OEIS A326602",
+  "upload_type": "publication",
+  "publication_type": "preprint",
+  "creators": [
+    {
+      "name": "Wang, Ximing"
+    }
+  ],
+  "description": "<p>A proof of Paul D. Hanna's 2019 parity conjecture for OEIS A326602, directly from its formal power series definition. A signed multinomial triple-sum expansion and coordinate-swapping involution establish evenness and show that the coefficient of x^(2n) is odd exactly when n is a square. Includes the manuscript, original Lean 4.33.1 proof bundle and reproduction instructions. The author reports zero sorry and standard axioms only; independent review and verification are pending. Developed with AI assistance.</p>",
+  "license": "cc-by-4.0",
+  "access_right": "open",
+  "language": "eng",
+  "keywords": [
+    "OEIS A326602",
+    "formal power series",
+    "parity",
+    "sign-reversing involution",
+    "combinatorics",
+    "Lean 4",
+    "formal verification"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://oeis.org/A326602",
+      "relation": "references",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://oeis.org/A323557",
+      "relation": "references",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://github.com/google-deepmind/alphaproof-nexus-results/blob/main/APNOutputs/OEIS/oeis_323557_conjecture_0.lean",
+      "relation": "references",
+      "scheme": "url"
+    }
+  ]
+}

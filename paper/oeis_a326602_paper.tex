@@ -1,0 +1,363 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\coeff}[1]{[x^{#1}]}
+
+\title{\textbf{Parity and Evenness of a Hanna Power Series:\\
+A Complete Proof and Lean 4 Formalization of OEIS A326602}}
+
+\author{Ximing Wang\\
+\texttt{vexpaer@gmail.com}}
+
+\date{November 27, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+In August 2019, Paul D.~Hanna introduced the integer sequence \href{https://oeis.org/A326602}{OEIS A326602} via the formal power series
+\[
+A(x) = \sum_{n=0}^{\infty} \frac{(x^{2n-1}+1)^n x^n}{(1+x^{2n+1})^{n+1}}
+     = \sum_{n=0}^{\infty} \frac{(x^{2n}+x)^n}{(1+x^{2n+1})^{n+1}} \in \Z[[x]],
+\]
+stated that $A(x) = \sum_{n=0}^{\infty} a(n) x^{2n}$ is an even function, and conjectured that $a(n)$ is odd if and only if $n$ is a perfect square. We resolve this conjecture completely and simultaneously prove the evenness of $A(x)$ and Hanna's alternative series representations directly from the primary rational-series definition. Expanding the $n$-th summand yields an exact signed multinomial triple-sum formula
+\[
+\coeff{N} A(x) = \sum_{\substack{a,b,c \ge 0 \\ a + c + 2(b+a)(b+c) = N}} (-1)^a \frac{(a+b+c)!}{a!\,b!\,c!}.
+\]
+The coordinate-swapping involution $\tau(a,b,c) = (c,b,a)$ preserves the exponent $a + c + 2(b+a)(b+c)$ and the multinomial coefficient while multiplying the weight by $(-1)^{a+c}$. For odd $N$, $\tau$ is a fixed-point-free sign-reversing involution, proving $\coeff{2n+1} A(x) = 0$ for all $n \ge 0$. For even $N = 2n$, $\tau$ pairs all off-diagonal triples ($a \ne c$) with identical weights, while every diagonal triple $(a,b,a)$ with $a \ge 1$ carries the even central binomial factor $\binom{2a}{a} = 2\binom{2a-1}{a-1}$. Modulo $2$, only triples $(0,b,0)$ with $2b^2 = 2n$ survive, proving that $a(n)$ is odd if and only if $n = b^2$. The entire proof—starting from the formal power series definition in $\Z[[x]]$—is formalized and machine-checked in Lean 4 (\texttt{v4.33.1}) with zero \texttt{sorry} placeholders and only the standard Lean axioms \texttt{[propext, Classical.choice, Quot.sound]}.
+\end{abstract}
+
+\noindent\textbf{MSC 2020:} 05A15, 05A19, 11B65, 13F25, 68V20.\\
+\textbf{Keywords:} OEIS A326602, Paul D.~Hanna, formal power series, sign-reversing involution, central binomial coefficients, parity, Lean 4 formalization.
+
+\section{Introduction}
+
+In August 2019, Paul D.~Hanna added sequence \href{https://oeis.org/A326602}{A326602} to the On-Line Encyclopedia of Integer Sequences (OEIS), defined by the formal power series
+\begin{equation}\label{eq:primary}
+A(x) = \sum_{n=0}^{\infty} \frac{(x^{2n-1}+1)^n x^n}{(1+x^{2n+1})^{n+1}}
+     = \sum_{n=0}^{\infty} a(n) x^{2n},
+\end{equation}
+whose initial coefficients are
+\[
+1,\; 3,\; 0,\; 2,\; 9,\; -12,\; 8,\; 12,\; -10,\; 15,\; -36,\; 46,\; -18,\; 20,\; 12,\; -82,\; 101,\; -162,\; 302,\; -168,\; \dots
+\]
+(computed by Hanna up to $n = 4100$ in \href{https://oeis.org/A326602/b326602.txt}{\texttt{b326602.txt}}). Alongside~\eqref{eq:primary}, Hanna recorded three equivalent formulas in \href{https://oeis.org/A326602}{OEIS A326602}:
+\begin{align}
+A(x) &= \sum_{n=0}^{\infty} \frac{(x^{2n-1}-1)^n x^n}{(1-x^{2n+1})^{n+1}}, \label{eq:hanna2}\\
+A(x) &= \sum_{n=0}^{\infty} x^n \sum_{k=0}^{n} \binom{n}{k} (x^{2n-1} - x^{2k})^{n-k}, \label{eq:hanna3}\\
+A(x) &= \sum_{n=0}^{\infty} x^n \sum_{k=0}^{n} (-1)^k \binom{n}{k} (x^{2n-1} + x^{2k})^{n-k}, \label{eq:hanna4}
+\end{align}
+and posed the following open conjecture:
+\begin{quote}
+\emph{Conjecture (Paul D.~Hanna, Aug 8, 2019): $a(n)$ is odd if and only if $n$ is a square.}
+\end{quote}
+
+The series~\eqref{eq:primary} belongs to a family of Hanna rational-function generating series exhibiting sparse odd-coefficient support, such as \href{https://oeis.org/A323557}{OEIS A323557} (where odd terms occur at pronic indices $n(n+1)$). In contrast to~\href{https://oeis.org/A323557}{A323557}, the generating function~\eqref{eq:primary} of \href{https://oeis.org/A326602}{A326602} is itself an \emph{even} power series, and the odd coefficients of $a(n) = \coeff{2n} A(x)$ occur precisely at the perfect squares $n = b^2$.
+
+In this paper we give a completely elementary, self-contained proof of both the evenness of $A(x)$ and Hanna's parity conjecture directly from the primary definition~\eqref{eq:primary}, without assuming any of the auxiliary identities~\eqref{eq:hanna2}--\eqref{eq:hanna4} in advance (indeed, all three follow as immediate corollaries of our main expansion). Moreover, the entire argument has been formalized and machine-checked in Lean 4 (\texttt{v4.33.1}) as a standalone module compatible with the \href{https://github.com/google-deepmind/formal-conjectures}{Google DeepMind Formal Conjectures} framework.
+
+\section{Formal Power Series Setup and Triple-Sum Expansion}
+
+First, observe that the apparent negative exponent $x^{2n-1}$ at $n=0$ in~\eqref{eq:primary} disappears immediately upon distributing the factor $x^n$ inside the $n$-th power:
+\[
+(x^{2n-1} + 1)^n x^n = \bigl((x^{2n-1} + 1) x\bigr)^n = (x^{2n} + x)^n \in \Z[x] \qquad (n \ge 0),
+\]
+where $(x^0 + x)^0 = 1$ at $n = 0$.
+
+\begin{definition}\label{def:series}
+For each $d \ge 1$, define the alternating geometric series
+\[
+G_d(x) := \sum_{r=0}^{\infty} (-1)^r x^{dr} \in \Z[[x]].
+\]
+For each $n \ge 0$, define the $n$-th summand
+\[
+T_n(x) := (x^{2n} + x)^n \, G_{2n+1}(x)^{n+1} \in \Z[[x]].
+\]
+\end{definition}
+
+\begin{proposition}[Rational-Function Specification and Convergence]\label{prop:conv}
+For every $d \ge 1$ and $n \ge 0$:
+\begin{enumerate}
+\item $(1 + x^d) G_d(x) = 1$ in $\Z[[x]]$, and hence $(1 + x^{2n+1})^{n+1} T_n(x) = (x^{2n} + x)^n$.
+\item For every $N \ge 0$,
+\begin{equation}\label{eq:geom_pow}
+\coeff{N} G_d(x)^{n+1} =
+\begin{cases}
+(-1)^{N/d} \dbinom{n + N/d}{N/d} & \text{if } d \mid N,\\[8pt]
+0 & \text{otherwise.}
+\end{cases}
+\end{equation}
+\item Whenever $N < n$, we have $\coeff{N} T_n(x) = 0$.
+\end{enumerate}
+Consequently, the formal infinite sum $A(x) := \sum_{n=0}^{\infty} T_n(x)$ is well-defined in $\Z[[x]]$, with
+\[
+\coeff{N} A(x) = \sum_{n=0}^{N} \coeff{N} T_n(x) \qquad (N \ge 0).
+\]
+\end{proposition}
+
+\begin{proof}
+(1) For $N < d$, $\coeff{N}((1+x^d) G_d(x)) = \coeff{N} G_d(x) = \delta_{N,0}$. For $N \ge d$,
+\[
+\coeff{N}\bigl((1+x^d) G_d(x)\bigr) = \coeff{N} G_d(x) + \coeff{N-d} G_d(x).
+\]
+If $d \nmid N$, then $d \nmid (N-d)$ and both terms vanish; if $N = dr$ with $r \ge 1$, the sum is $(-1)^r + (-1)^{r-1} = 0$. Raising $(1+x^{2n+1}) G_{2n+1}(x) = 1$ to the $(n+1)$-st power yields $(1+x^{2n+1})^{n+1} T_n(x) = (x^{2n}+x)^n$.
+
+(2) We induct on $n$. The base case $n = 0$ is immediate from Definition~\ref{def:series} since $\binom{r}{r} = 1$. For the inductive step, $\coeff{N} G_d(x)^{n+2} = \sum_{i+j=N} \coeff{i} G_d(x)^{n+1} \coeff{j} G_d(x)$. If $d \nmid N$, then for every pair $(i,j)$ with $i+j=N$, at least one of $i, j$ is not divisible by $d$, so every summand vanishes. If $N = dr$, the surviving pairs are $(di, d(r-i))$ for $0 \le i \le r$, giving
+\[
+\coeff{dr} G_d(x)^{n+2}
+= \sum_{i=0}^{r} (-1)^i \binom{n+i}{i} (-1)^{r-i}
+= (-1)^r \sum_{i=0}^{r} \binom{n+i}{i}
+= (-1)^r \binom{n+1+r}{r}
+\]
+by the hockey-stick identity.
+
+(3) Expanding $(x^{2n} + x)^n = \sum_{b=0}^{n} \binom{n}{b} x^{2nb + (n-b)}$, observe that every monomial exponent satisfies $2nb + (n-b) \ge n$ (equals $n$ when $b=0$, and is at least $2n \ge n$ when $b \ge 1$). Hence $\coeff{M}(x^{2n}+x)^n = 0$ for all $M < n$, which forces $\coeff{N} T_n(x) = 0$ whenever $N < n$.
+\end{proof}
+
+We now derive the central structural identity for $\coeff{N} A(x)$.
+
+\begin{definition}\label{def:triple}
+For each $N \in \N$, define the finite set of nonnegative integer triples
+\[
+S_N := \bigl\{(a, b, c) \in \N^3 : a + c + 2(b+a)(b+c) = N\bigr\},
+\]
+and for each triple $t = (a,b,c) \in \N^3$, define its signed multinomial weight
+\[
+w(a,b,c) := (-1)^a \frac{(a+b+c)!}{a!\,b!\,c!} = (-1)^a \binom{b+c}{b}\binom{a+b+c}{a}.
+\]
+\end{definition}
+
+Note that any $(a,b,c) \in S_N$ automatically satisfies $a \le N$, $b \le N$, and $c \le N$ (since $a+c \le N$, and if $b \ge 1$ then $b \le 2b^2 \le 2(b+a)(b+c) \le N$), so $S_N \subseteq \{0,\dots,N\}^3$ is finite.
+
+\begin{theorem}[Exact Triple-Sum Representation]\label{thm:triple}
+For every $N \in \N$,
+\begin{equation}\label{eq:triple}
+\coeff{N} A(x) = \sum_{(a,b,c) \in S_N} (-1)^a \frac{(a+b+c)!}{a!\,b!\,c!}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+By Proposition~\ref{prop:conv}, expanding $(x^{2n}+x)^n$ by the binomial theorem and $G_{2n+1}(x)^{n+1}$ via~\eqref{eq:geom_pow}, we obtain for each $n \ge 0$:
+\[
+\coeff{N} T_n(x)
+= \sum_{\substack{0 \le b \le n,\; a \ge 0 \\ 2nb + (n-b) + (2n+1)a = N}}
+  (-1)^a \binom{n}{b} \binom{n+a}{a}.
+\]
+Summing over $0 \le n \le N$ (and noting that $2nb + (n-b) + (2n+1)a = N$ automatically forces $n \le N$ and $a \le N$), we reindex via the bijection $(n, b, a) \mapsto (a, b, c)$ with $c := n - b \ge 0$ and inverse $(a, b, c) \mapsto (b+c, b, a)$. Under this bijection, $n = b+c$, $\binom{n}{b}\binom{n+a}{a} = \binom{b+c}{b}\binom{a+b+c}{a} = \frac{(a+b+c)!}{a!\,b!\,c!}$, and the exponent transforms via the polynomial identity
+\begin{align*}
+2nb + (n-b) + (2n+1)a
+&= 2(b+c)b + c + \bigl(2(b+c)+1\bigr)a \\
+&= a + c + 2b^2 + 2bc + 2ab + 2ac \\
+&= a + c + 2(b+a)(b+c).
+\end{align*}
+Hence the index set maps bijectively onto $S_N$, yielding~\eqref{eq:triple}.
+\end{proof}
+
+\begin{corollary}[Recovery of Hanna's Formula~\eqref{eq:hanna4}]\label{cor:formula4}
+Grouping the triple sum~\eqref{eq:triple} by $m = a+b+c$ and $k = a$ (so $b + c = m - k$) recovers
+\[
+A(x) = \sum_{m=0}^{\infty} x^m \sum_{k=0}^{m} (-1)^k \binom{m}{k} (x^{2m-1} + x^{2k})^{m-k}.
+\]
+\end{corollary}
+
+\begin{proof}
+With $m = a+b+c$ and $k = a$, we have $c = m - k - b$ and
+\[
+a + c + 2(b+a)(b+c)
+= m + (2m-1)b + 2k(m-k-b).
+\]
+Furthermore, $\frac{m!}{k!\,b!\,(m-k-b)!} = \binom{m}{k}\binom{m-k}{b}$. Summing over $0 \le b \le m-k$ produces $(x^{2m-1} + x^{2k})^{m-k}$ by the binomial theorem (with $(x^{2m-1} + x^{2m})^0 = 1$ at $k = m$).
+\end{proof}
+
+\section{The Involution: Evenness and Resolution of Hanna's Conjecture}
+
+The decisive feature of Definition~\ref{def:triple} is that both the exponent
+\[
+E(a,b,c) := a + c + 2(b+a)(b+c)
+\]
+and the unsigned multinomial coefficient $\frac{(a+b+c)!}{a!\,b!\,c!}$ are completely symmetric under swapping $a$ and $c$.
+
+\begin{definition}\label{def:tau}
+Define the involution $\tau : \N^3 \to \N^3$ by $\tau(a,b,c) := (c,b,a)$.
+\end{definition}
+
+Clearly $\tau(\tau(t)) = t$, and $E(\tau(a,b,c)) = c + a + 2(b+c)(b+a) = E(a,b,c)$, so $\tau$ restricts to an involution on $S_N$ for every $N \in \N$. Moreover,
+\begin{equation}\label{eq:weight_tau}
+w(\tau(a,b,c)) = (-1)^c \frac{(c+b+a)!}{c!\,b!\,a!} = (-1)^{a+c}\, w(a,b,c).
+\end{equation}
+
+\begin{theorem}[Evenness of $A(x)$]\label{thm:even}
+For every $n \in \N$, $\coeff{2n+1} A(x) = 0$. That is, $A(-x) = A(x)$ in $\Z[[x]]$.
+\end{theorem}
+
+\begin{proof}
+Let $N = 2n + 1$. For every $(a,b,c) \in S_{2n+1}$, we have
+\[
+a + c = (2n + 1) - 2(b+a)(b+c) \equiv 1 \pmod{2},
+\]
+so $a + c$ is odd and $(-1)^{a+c} = -1$. By~\eqref{eq:weight_tau}, $w(\tau(t)) = -w(t)$ for all $t \in S_{2n+1}$. Since $\tau$ is a bijection from $S_{2n+1}$ to itself, Theorem~\ref{thm:triple} yields
+\[
+\coeff{2n+1} A(x)
+= \sum_{t \in S_{2n+1}} w(t)
+= \sum_{t \in S_{2n+1}} w(\tau(t))
+= -\sum_{t \in S_{2n+1}} w(t)
+= -\coeff{2n+1} A(x),
+\]
+whence $2\coeff{2n+1} A(x) = 0$ and therefore $\coeff{2n+1} A(x) = 0$.
+\end{proof}
+
+\begin{corollary}[Recovery of Hanna's Formulas~\eqref{eq:hanna2} and~\eqref{eq:hanna3}]
+Replacing $x$ by $-x$ in~\eqref{eq:primary} and~\eqref{eq:hanna4} and applying $A(-x) = A(x)$ from Theorem~\ref{thm:even} immediately yields~\eqref{eq:hanna2} and~\eqref{eq:hanna3}.
+\end{corollary}
+
+We are now ready to prove the main theorem resolving Hanna's 2019 conjecture.
+
+\begin{lemma}[Parity of Diagonal Multinomial Coefficients]\label{lem:diag}
+For every $a \ge 1$ and $b \ge 0$, the multinomial coefficient $\frac{(2a+b)!}{a!\,b!\,a!}$ is even.
+\end{lemma}
+
+\begin{proof}
+Factor the multinomial coefficient as
+\[
+\frac{(2a+b)!}{a!\,b!\,a!}
+= \binom{2a+b}{2a} \binom{2a}{a}.
+\]
+Since $a \ge 1$, Pascal's identity and binomial symmetry give
+\[
+\binom{2a}{a} = \binom{2a-1}{a-1} + \binom{2a-1}{a} = 2\binom{2a-1}{a-1},
+\]
+which is even. Hence $\frac{(2a+b)!}{a!\,b!\,a!}$ is even.
+\end{proof}
+
+\begin{theorem}[Resolution of Paul D.~Hanna's Conjecture on OEIS A326602]\label{thm:main}
+Let $a(n) := \coeff{2n} A(x)$ for $n \in \N$. Then $a(n)$ is odd if and only if $n$ is a perfect square:
+\[
+\forall n \in \N, \qquad a(n) \equiv 1 \pmod{2} \iff \exists b \in \N,\; n = b^2.
+\]
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:triple}, $a(n) = \sum_{t \in S_{2n}} w(t)$. Partition $S_{2n}$ into three pairwise disjoint subsets:
+\begin{align*}
+S_{2n}^{\neq} &:= \{(a,b,c) \in S_{2n} : a \ne c\}, \\
+S_{2n}^{>0}   &:= \{(a,b,a) \in S_{2n} : a \ge 1\}, \\
+S_{2n}^{0}    &:= \{(0,b,0) \in S_{2n}\}.
+\end{align*}
+We evaluate the parity of the sum over each piece in turn:
+\begin{enumerate}
+\item \emph{Off-diagonal triples ($S_{2n}^{\neq}$):} For every $(a,b,c) \in S_{2n}$, we have $a + c = 2n - 2(b+a)(b+c) \equiv 0 \pmod{2}$, so $(-1)^{a+c} = 1$ and hence $w(\tau(t)) = w(t)$ by~\eqref{eq:weight_tau}. Splitting $S_{2n}^{\neq}$ into $S_{2n}^{<} := \{(a,b,c) \in S_{2n} : a < c\}$ and $S_{2n}^{>} := \{(a,b,c) \in S_{2n} : a > c\}$, the involution $\tau$ restricts to a weight-preserving bijection $S_{2n}^{<} \xrightarrow{\sim} S_{2n}^{>}$. Therefore
+\[
+\sum_{t \in S_{2n}^{\neq}} w(t) = 2 \sum_{t \in S_{2n}^{<}} w(t) \equiv 0 \pmod{2}.
+\]
+
+\item \emph{Positive diagonal triples ($S_{2n}^{>0}$):} By Lemma~\ref{lem:diag}, every triple $(a,b,a) \in S_{2n}^{>0}$ has even weight $w(a,b,a) = (-1)^a \frac{(2a+b)!}{a!\,b!\,a!}$. Thus
+\[
+\sum_{t \in S_{2n}^{>0}} w(t) \equiv 0 \pmod{2}.
+\]
+
+\item \emph{Zero diagonal triples ($S_{2n}^{0}$):} A triple $(0,b,0)$ lies in $S_{2n}$ if and only if
+\[
+0 + 0 + 2(b + 0)(b + 0) = 2n \iff b^2 = n,
+\]
+and its weight is $w(0,b,0) = (-1)^0 \frac{b!}{0!\,b!\,0!} = 1$. Since $b \mapsto b^2$ is injective on $\N$, the set $S_{2n}^{0}$ is the singleton $\{(0,b,0)\}$ if $n = b^2$ for some $b \in \N$, and is empty otherwise. Consequently,
+\[
+\sum_{t \in S_{2n}^{0}} w(t) =
+\begin{cases}
+1 & \text{if } \exists b \in \N,\; n = b^2,\\
+0 & \text{otherwise.}
+\end{cases}
+\]
+\end{enumerate}
+Combining the three pieces modulo $2$ gives
+\[
+a(n) \equiv \sum_{t \in S_{2n}^{0}} w(t) \pmod{2},
+\]
+so $a(n)$ is odd if and only if $n$ is a perfect square.
+\end{proof}
+
+\section{Initial Terms and Numerical Verification}
+
+Table~\ref{tab:values} lists the first $20$ terms $a(n) = \coeff{2n} A(x)$ computed from Theorem~\ref{thm:triple}, together with their parity and the surviving zero-diagonal triple $(0,b,0)$ when $n = b^2$. Every value matches \href{https://oeis.org/A326602}{OEIS A326602} verbatim, and all odd-degree coefficients $\coeff{2n+1} A(x)$ vanish identically.
+
+\begin{table}[ht]
+\centering
+\caption{First $20$ terms of \href{https://oeis.org/A326602}{OEIS A326602} computed via Theorem~\ref{thm:triple}. Odd entries occur exclusively at $n \in \{0, 1, 4, 9, 16\}$.}
+\label{tab:values}
+\begin{tabular}{rrrr|rrrr}
+\toprule
+$n$ & $a(n)$ & $a(n) \bmod 2$ & $S_{2n}^{0}$ & $n$ & $a(n)$ & $a(n) \bmod 2$ & $S_{2n}^{0}$ \\
+\midrule
+0 & $1$   & \textbf{1} & $\{(0,0,0)\}$ & 10 & $-36$  & 0 & $\emptyset$ \\
+1 & $3$   & \textbf{1} & $\{(0,1,0)\}$ & 11 & $46$   & 0 & $\emptyset$ \\
+2 & $0$   & 0          & $\emptyset$   & 12 & $-18$  & 0 & $\emptyset$ \\
+3 & $2$   & 0          & $\emptyset$   & 13 & $20$   & 0 & $\emptyset$ \\
+4 & $9$   & \textbf{1} & $\{(0,2,0)\}$ & 14 & $12$   & 0 & $\emptyset$ \\
+5 & $-12$ & 0          & $\emptyset$   & 15 & $-82$  & 0 & $\emptyset$ \\
+6 & $8$   & 0          & $\emptyset$   & 16 & $101$  & \textbf{1} & $\{(0,4,0)\}$ \\
+7 & $12$  & 0          & $\emptyset$   & 17 & $-162$ & 0 & $\emptyset$ \\
+8 & $-10$ & 0          & $\emptyset$   & 18 & $302$  & 0 & $\emptyset$ \\
+9 & $15$  & \textbf{1} & $\{(0,3,0)\}$ & 19 & $-168$ & 0 & $\emptyset$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Lean 4 Formalization}
+
+All definitions and theorems in Sections~2--3 have been formalized in Lean 4 (\texttt{v4.33.1}) with Mathlib in the standalone file \texttt{FormalConjectures/OEIS/326602.lean} (781 lines), structured in the conventions of the \href{https://github.com/google-deepmind/formal-conjectures}{Google DeepMind Formal Conjectures} repository. Rather than starting from an auxiliary binomial sum, the formalization defines \texttt{A : PowerSeries Int} directly from the rational-series summands \texttt{termSeries n} and proves every link in the chain from first principles.
+
+\begin{table}[ht]
+\centering
+\caption{Principal theorems verified in \texttt{FormalConjectures/OEIS/326602.lean} (namespace \texttt{OeisA326602}).}
+\label{tab:lean}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Lean Declaration & Paper Result & Status \\
+\midrule
+\texttt{termSeries\_spec} & Proposition~\ref{prop:conv}(1) & Verified \\
+\texttt{coeff\_termSeries\_eq\_zero\_of\_lt} & Proposition~\ref{prop:conv}(3) & Verified \\
+\texttt{coeff\_A\_eq\_triple\_sum} & Theorem~\ref{thm:triple} & Verified \\
+\texttt{coeff\_A\_odd\_eq\_zero} & Theorem~\ref{thm:even} & Verified \\
+\texttt{conjecture\_parity} & Theorem~\ref{thm:main} & Verified \\
+\texttt{a\_0}, \texttt{a\_1}, \texttt{a\_2}, \texttt{a\_3} & $a(0)=1, a(1)=3, a(2)=0, a(3)=2$ & Verified \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Compiling \texttt{lake build FormalConjectures.OEIS.«326602»} completes with \textbf{0 errors}, \textbf{0 warnings}, and \textbf{0 \texttt{sorry}s}. Running \texttt{\#print axioms} on all nine theorems in Table~\ref{tab:lean} confirms that every proof depends strictly on the three standard Lean axioms
+\[
+\texttt{[propext, Classical.choice, Quot.sound]},
+\]
+with no \texttt{sorryAx} and no \texttt{Lean.ofReduceBool} (\texttt{native\_decide}).
+
+\begin{thebibliography}{9}
+\bibitem{Hanna2019}
+P.~D. Hanna, \emph{Sequence A326602: G.f.: $\sum_{n\ge 0} (x^{2n-1}+1)^n x^n / (1+x^{2n+1})^{n+1}$, an even function}, The On-Line Encyclopedia of Integer Sequences, Aug.~8, 2019. \url{https://oeis.org/A326602}.
+
+\bibitem{HannaBfile}
+P.~D. Hanna, \emph{Table of $n$, $a(n)$ for $n = 0..4100$}, OEIS A326602 b-file, 2019. \url{https://oeis.org/A326602/b326602.txt}.
+
+\bibitem{HannaA323557}
+P.~D. Hanna, \emph{Sequence A323557: G.f.: $\sum_{n\ge 0} x^n (1+x^n)^n / (1+x^{n+1})^{n+1}$}, The On-Line Encyclopedia of Integer Sequences, Feb.~3, 2019. \url{https://oeis.org/A323557}.
+
+\bibitem{FormalConjectures}
+The Formal Conjectures Authors, \emph{Formal Conjectures}, Google DeepMind, 2025--2026. \url{https://github.com/google-deepmind/formal-conjectures}.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "Please cite the archived version of this work."
+title: "Parity and Evenness of a Hanna Power Series: A Complete Proof and Lean 4 Formalization of OEIS A326602"
+authors:
+  - family-names: Wang
+    given-names: Ximing
+repository-code: https://github.com/vexpaer/oeis-a326602
+license: Apache-2.0
+keywords:
+  - OEIS A326602
+  - parity
+  - formal power series
+  - Lean 4
+preferred-citation:
+  type: unpublished
+  title: "Parity and Evenness of a Hanna Power Series: A Complete Proof and Lean 4 Formalization of OEIS A326602"
+  authors:
+    - family-names: Wang
+      given-names: Ximing
+  year: 2026
+  url: https://github.com/vexpaer/oeis-a326602

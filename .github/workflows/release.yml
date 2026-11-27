@@ -1,0 +1,23 @@
+name: Prepare archival release
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare v1.0.0 draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            echo "Release already exists; leaving it unchanged."
+          else
+            gh release create v1.0.0 --draft --target "$GITHUB_SHA" --title "v1.0.0 — OEIS A326602 parity conjecture" --notes-file RELEASE_NOTES.md paper/oeis_a326602_paper.pdf paper/oeis_a326602_paper.tex original/oeis-a326602-lean.zip
+          fi
